@@ -1,51 +1,123 @@
-import React, { useEffect } from 'react'
-import { useState } from 'react'
-import { arrayMoveMutable } from 'array-move'
-import { List } from 'antd'
-import { Container, Draggable } from 'react-smooth-dnd'
-import ListItemText from "@material-ui/core/ListItemText";
-import { ListItem } from '@material-ui/core'
-import ListItemIcon from "@material-ui/core/ListItemIcon";
-import ListItemSecondaryAction from "@material-ui/core/ListItemSecondaryAction";
-import DragHandleIcon from "@material-ui/icons/DragHandle";
+import React, { useState, useEffect } from "react";
+import clsx from "clsx";
+import { Box, Typography } from "@material-ui/core";
+import { makeStyles } from "@material-ui/core";
+import MenuIcon from "@material-ui/icons/Menu";
+import { Container, Draggable } from "react-smooth-dnd";
+import { applyDrag } from "./utils";
 
-const App = () => {
-  const [cards, setCards] = useState([
-    { id: "1", name: "card 1" },
-    { id: "2", name: "card 2" },
-    { id: "3", name: "card 3" },
-    { id: "4", name: "card 4" },
-  ])
+import "./styles.css";
 
-  const onDrop = ({
-    removeIndex,
-    addedIndex
-  }) => {
-    setCards((cards) => arrayMoveMutable(cards, removeIndex, addedIndex))
-  }
+const useStyles = makeStyles((theme) => ({
+  child: {},
 
-  useEffect(() => {
-    console.log(cards)
-  }, [cards])
+  container: {
+    marginLeft: theme.spacing(2),
+    padding: theme.spacing(1, 0)
+  },
+
+  dragHandle: {
+    cursor: "move"
+  },
+
+  item: {},
+
+  tree: {}
+}));
+
+const Child = ({ item }) => {
+  const [items, setItems] = useState(
+    item && item.children ? item.children : []
+  );
+  const classes = useStyles();
+
+  const handleDrop = (dropResult) => {
+    // console.log(item.id, dropResult);
+    setItems(applyDrag(items, dropResult));
+  };
 
   return (
-    <List>
-    <Container dragHandleSelector='.drag-handle' lockAxis="y" onDrop={onDrop}>
-        {cards.map((id, name) => (
-          <Draggable key={id}>
-            <ListItem>
-              <ListItemText primary={name} />
-              <ListItemSecondaryAction>
-                <ListItemIcon className="drag-handle">
-                  <DragHandleIcon />
-                </ListItemIcon>
-              </ListItemSecondaryAction>
-            </ListItem>
-          </Draggable>
+    <Draggable key={item.id}>
+      <div className={classes.child}>
+        <Box
+          className={classes.item}
+          display="flex"
+          justifyContent="space-between"
+        >
+          <Typography>{item.name}</Typography>
+          <Box className={classes.dragHandle}>
+            <MenuIcon />
+          </Box>
+        </Box>
+
+        {items.length > 0 && (
+          <div className={clsx(classes.tree, classes.container)}>
+            <Container
+              dragHandleSelector={`.${classes.dragHandle}`}
+              getChildPayload={(i) => items[i]}
+              getGhostParent={() => document.body}
+              groupName="topics"
+              // lockAxis="y"
+              onDrop={handleDrop}
+            >
+              {items.map((item) => (
+                <Child item={item} key={`ch-${item.id}`} />
+              ))}
+            </Container>
+          </div>
+        )}
+      </div>
+    </Draggable>
+  );
+};
+
+export default function App() {
+  const [items, setItems] = useState([
+    { name: "Foo", id: 1 },
+    { name: "B", id: 4 },
+    { name: "C", id: 5 },
+    {
+      name: "Bar",
+      id: 2,
+      children: [
+        { name: "Bar #1", id: 11 },
+        { name: "Bar #2", id: 12 }
+      ]
+    },
+    { name: "Baz", id: 3 },
+    { name: "X", id: 6 },
+    { name: "Y", id: 7 },
+    { name: "Z", id: 8 }
+  ]);
+  const classes = useStyles();
+
+  const handleDrop = (dropResult) => {
+    // console.log("master", dropResult);
+    // const { removedIndex, addedIndex, payload, element } = dropResult;
+    setItems(applyDrag(items, dropResult));
+  };
+
+  useEffect(() => {
+    console.log("Items changed", items);
+  }, [items]);
+
+  return (
+    <div
+      className={clsx(classes.tree, classes.container)}
+      style={{ width: 250 }}
+    >
+      <Container
+        dragHandleSelector={`.${classes.dragHandle}`}
+        getChildPayload={(i) => items[i]}
+        getGhostParent={() => document.body}
+        groupName="topics"
+        // lockAxis="y"
+        onDrop={handleDrop}
+      >
+        {items.map((item) => (
+          <Child item={item} key={`ch-${item.id}`} />
         ))}
       </Container>
-      </List>
-  )
+    </div>
+  );
 }
-
-export default App
